@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_whatsapp_sale_composer,whatsapp.sale.composer.access,model_whatsapp_sale_composer,base.group_user,1,1,1,1

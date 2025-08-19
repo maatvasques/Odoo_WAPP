@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="view_order_form_whatsapp" model="ir.ui.view">
+            <field name="name">sale.order.form.whatsapp</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <button name="action_quotation_send" position="after">
+                    <button name="action_open_whatsapp_composer"
+                            string="Enviar por WhatsApp"
+                            type="object"
+                            class="oe_highlight"
+                            icon="fa-whatsapp"
+                            attrs="{'invisible': [('state', 'in', ['draft'])]}"/>
+                </button>
+            </field>
+        </record>
+    </data>
+</odoo>

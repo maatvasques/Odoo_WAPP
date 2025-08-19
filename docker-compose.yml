@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  # Serviço do Banco de Dados PostgreSQL
+  db:
+    image: postgres:15-alpine  # Usamos uma imagem oficial e leve do Postgres 15
+    container_name: odoo17-db
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data  # Garante que os dados do DB sejam salvos na sua máquina
+    restart: unless-stopped
+    ports:
+      - "5432:5432" # Expõe a porta do postgres para debug, se necessário
+
+  # Serviço da Aplicação Odoo
+  odoo:
+    image: odoo:17.0  # Imagem oficial do Odoo 17
+    container_name: odoo17-app
+    depends_on:
+      - db  # O Odoo só vai iniciar DEPOIS que o banco de dados estiver pronto
+    ports:
+      - "8069:8069"  # Mapeia a porta do container para a porta do seu PC
+      - "8072:8072"  # Porta para o live-chat (opcional, mas boa prática)
+    volumes:
+      # Mapeia o arquivo de configuração
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+      # Mapeia a pasta de addons customizados
+      - ./addons:/mnt/extra-addons
+    restart: unless-stopped
