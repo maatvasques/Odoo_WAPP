@@ -76,29 +76,38 @@ class SaleOrder(models.Model):
             raise UserError(_("Falha ao enviar a mensagem via WAHA. Verifique os logs e as configurações."))
 
     def action_open_whatsapp_composer(self):
-        """Abre o wizard para enviar mensagem e boleto."""
         self.ensure_one()
-        # Tenta encontrar um boleto já anexado (exemplo, pode precisar de ajuste)
-        attachment = self.env['ir.attachment'].search([
-            ('res_model', '=', 'sale.order'),
-            ('res_id', '=', self.id),
-            ('name', 'ilike', 'boleto%'),
-        ], limit=1)
 
-        return {
-            'type': 'ir.actions.act_window',
-            'name': _('Enviar por WhatsApp'),
-            'res_model': 'whatsapp.sale.composer',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {
-                'default_sale_order_id': self.id,
-                'default_phone_number': self.partner_id.phone or self.partner_id.mobile,
-                'default_attachment_ids': [(6, 0, attachment.ids)] if attachment else False,
-                'default_message_type': 'send', # Identifica que é um envio manual
-            }
+        # O nome do relatório que queremos gerar
+        report_xml_id = 'sale.action_report_saleorder'
+
+        # --- CORREÇÃO AQUI ---
+        # 1. Gera o conteúdo do PDF chamando a função da maneira correta
+        pdf_content, content_type = self.env['ir.actions.report']._render_qweb_pdf(report_xml_id, self.id)
+
+        # 2. Cria o anexo no Odoo
+        attachment = self.env['ir.attachment'].create({
+            'name': f"{self.name}.pdf",
+            'type': 'binary',
+            'datas': base64.b64encode(pdf_content),
+            'res_model': 'sale.order',
+            'res_id': self.id,
+            'mimetype': 'application/pdf'})
+
+    # 3. Abre o wizard, passando o anexo recém-criado como padrão
+    return {
+        'type': 'ir.actions.act_window',
+        'name': ('Enviar por WhatsApp'),
+        'res_model': 'whatsapp.sale.composer',
+        'view_mode': 'form',
+        'target': 'new',
+        'context': {
+            'default_sale_order_id': self.id,
+            'default_phone_number': self.partner_id.phone or self.partner_id.mobile,
+            'default_attachment_ids': [(6, 0, attachment.ids)],
         }
-
+    }
+    
     def action_confirm(self):
         """Sobrescreve a ação de confirmar para enviar WhatsApp."""
         res = super(SaleOrder, self).action_confirm()

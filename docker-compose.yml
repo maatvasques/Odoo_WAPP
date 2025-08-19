@@ -1,21 +1,21 @@
-# A linha 'version' foi removida, como sugerido pelo aviso do Docker.
 services:
-  # Serviço da Aplicação Odoo
   odoo:
     image: odoo:17.0
     container_name: odoo17-app
     depends_on:
       - db
-      - waha # Garante que o Odoo espere a API do WAHA iniciar
+      - waha
     ports:
       - "8069:8069"
       - "8072:8072"
     volumes:
       - ./config/odoo.conf:/etc/odoo/odoo.conf
       - ./custom_addons:/mnt/extra-addons
+    # --- COMANDO DE INSTALAÇÃO REINSERIDO ---
+    # Este comando só será executado na criação de um NOVO banco de dados.
+    command: -- -i sale_management,sale_whatsapp_integration
     restart: unless-stopped
 
-  # Serviço do Banco de Dados PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: odoo17-db
@@ -23,15 +23,13 @@ services:
       - POSTGRES_USER=odoo
       - POSTGRES_PASSWORD=odoo
       - POSTGRES_DB=postgres
-    # --- ALTERAÇÃO AQUI ---
-    # Agora o Docker gerencia os dados internamente, sem criar a pasta 'data' no seu projeto.
     volumes:
+      # Os dados agora são gerenciados pelo Docker, sem criar a pasta 'data'.
       - odoo-db-data:/var/lib/postgresql/data
     restart: unless-stopped
     ports:
       - "5432:5432"
 
-  # Serviço da API WAHA
   waha:
     image: devlikeapro/waha:latest
     container_name: waha-api
@@ -41,7 +39,5 @@ services:
     environment:
       - WHA_SESSIONS_ON_START=default
 
-# --- ADIÇÃO AQUI ---
-# Define um "volume nomeado" para o Docker usar no serviço 'db'.
 volumes:
   odoo-db-data:

@@ -12,7 +12,7 @@
                             type="object"
                             class="oe_highlight"
                             icon="fa-whatsapp"
-                            attrs="{'invisible': [('state', 'in', ['draft'])]}"/>
+                            invisible="state in ['draft']"/>
                 </button>
             </field>
         </record>
