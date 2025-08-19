@@ -36,6 +36,8 @@ class SaleOrder(models.Model):
     
     def _format_phone_number(self, phone_number):
         """Formata o número de telefone para o padrão do WAHA (ex: 5511999998888@s.whatsapp.net)."""
+        if not phone_number:
+            return False
         # Remove caracteres não numéricos
         clean_phone = ''.join(filter(str.isdigit, phone_number))
         # Adiciona o código do país (Brasil) se não estiver presente
@@ -76,12 +78,15 @@ class SaleOrder(models.Model):
             raise UserError(_("Falha ao enviar a mensagem via WAHA. Verifique os logs e as configurações."))
 
     def action_open_whatsapp_composer(self):
+        """
+        Gera o relatório do Pedido de Venda, cria um anexo,
+        e abre o wizard para enviar a mensagem e o anexo.
+        """
         self.ensure_one()
 
         # O nome do relatório que queremos gerar
         report_xml_id = 'sale.action_report_saleorder'
 
-        # --- CORREÇÃO AQUI ---
         # 1. Gera o conteúdo do PDF chamando a função da maneira correta
         pdf_content, content_type = self.env['ir.actions.report']._render_qweb_pdf(report_xml_id, self.id)
 
@@ -92,27 +97,29 @@ class SaleOrder(models.Model):
             'datas': base64.b64encode(pdf_content),
             'res_model': 'sale.order',
             'res_id': self.id,
-            'mimetype': 'application/pdf'})
+            'mimetype': 'application/pdf'
+        })
 
-    # 3. Abre o wizard, passando o anexo recém-criado como padrão
-    return {
-        'type': 'ir.actions.act_window',
-        'name': ('Enviar por WhatsApp'),
-        'res_model': 'whatsapp.sale.composer',
-        'view_mode': 'form',
-        'target': 'new',
-        'context': {
-            'default_sale_order_id': self.id,
-            'default_phone_number': self.partner_id.phone or self.partner_id.mobile,
-            'default_attachment_ids': [(6, 0, attachment.ids)],
+        # 3. Abre o wizard, passando o anexo recém-criado como padrão
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Enviar por WhatsApp'),
+            'res_model': 'whatsapp.sale.composer',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_sale_order_id': self.id,
+                'default_phone_number': self.partner_id.phone or self.partner_id.mobile,
+                'default_attachment_ids': [(6, 0, attachment.ids)],
+            }
         }
-    }
-    
+
     def action_confirm(self):
         """Sobrescreve a ação de confirmar para enviar WhatsApp."""
         res = super(SaleOrder, self).action_confirm()
-        message = _("Seu pedido %s foi confirmado!", self.name)
-        self._send_whatsapp_message(self.partner_id.phone or self.partner_id.mobile, message)
+        for order in self:
+            message = _("Seu pedido %s foi confirmado!", order.name)
+            order._send_whatsapp_message(order.partner_id.phone or order.partner_id.mobile, message)
         return res
 
     def action_cancel(self):
