@@ -1,5 +1,21 @@
-version: '3.8'
+# A linha 'version' foi removida, como sugerido pelo aviso do Docker.
 services:
+  # Serviço da Aplicação Odoo
+  odoo:
+    image: odoo:17.0
+    container_name: odoo17-app
+    depends_on:
+      - db
+      - waha # Odoo só inicia depois do WAHA
+    ports:
+      - "8069:8069"
+      - "8072:8072"
+    volumes:
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+      - ./custom_addons:/mnt/extra-addons
+    restart: unless-stopped
+
+  # Serviço do Banco de Dados PostgreSQL
   db:
     image: postgres:15-alpine
     container_name: odoo17-db
@@ -13,19 +29,14 @@ services:
     ports:
       - "5432:5432"
 
-  odoo:
-    image: odoo:17.0
-    container_name: odoo17-app
-    depends_on:
-      - db
-    ports:
-      - "8069:8069"
-      - "8072:8072"
-    volumes:
-      # Mapeia o arquivo de configuração
-      - ./config/odoo.conf:/etc/odoo/odoo.conf
-      # Mapeia a pasta de addons customizados (CORRIGIDO)
-      - ./custom_addons:/mnt/extra-addons
+  # SERVIÇO WAHA (COM A IMAGEM CORRETA)
+  waha:
+    # CORREÇÃO: Usando a imagem gratuita e oficial
+    image: devlikeapro/waha:latest
+    container_name: waha-api
     restart: unless-stopped
-    # ADICIONADO: Comando para instalar módulos automaticamente
-    command: -- -i sale_management,sale_whatsapp_integration -d odoo17-teste --stop-after-init
+    ports:
+      - "3000:3000" # Mapeia a porta 3000 para seu localhost
+    environment:
+      # Inicia uma sessão chamada 'default' ao iniciar.
+      - WHA_SESSIONS_ON_START=default
