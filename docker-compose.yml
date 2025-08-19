@@ -6,7 +6,7 @@ services:
     container_name: odoo17-app
     depends_on:
       - db
-      - waha # Odoo só inicia depois do WAHA
+      - waha # Garante que o Odoo espere a API do WAHA iniciar
     ports:
       - "8069:8069"
       - "8072:8072"
@@ -23,20 +23,25 @@ services:
       - POSTGRES_USER=odoo
       - POSTGRES_PASSWORD=odoo
       - POSTGRES_DB=postgres
+    # --- ALTERAÇÃO AQUI ---
+    # Agora o Docker gerencia os dados internamente, sem criar a pasta 'data' no seu projeto.
     volumes:
-      - ./postgres/data:/var/lib/postgresql/data
+      - odoo-db-data:/var/lib/postgresql/data
     restart: unless-stopped
     ports:
       - "5432:5432"
 
-  # SERVIÇO WAHA (COM A IMAGEM CORRETA)
+  # Serviço da API WAHA
   waha:
-    # CORREÇÃO: Usando a imagem gratuita e oficial
     image: devlikeapro/waha:latest
     container_name: waha-api
     restart: unless-stopped
     ports:
-      - "3000:3000" # Mapeia a porta 3000 para seu localhost
+      - "3000:3000"
     environment:
-      # Inicia uma sessão chamada 'default' ao iniciar.
       - WHA_SESSIONS_ON_START=default
+
+# --- ADIÇÃO AQUI ---
+# Define um "volume nomeado" para o Docker usar no serviço 'db'.
+volumes:
+  odoo-db-data:
